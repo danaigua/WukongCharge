@@ -37,5 +37,5 @@
 	</bean>
 
 	<!-- 使用注解的包，包括子集 -->
-	<context:component-scan base-package="com.java1234.controller" />
+	<context:component-scan base-package="com.zhicheng.wukongcharge.controller" />
 </beans>  

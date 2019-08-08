@@ -4,10 +4,8 @@ import com.zhicheng.wukongcharge.communicate.TomdaProcotolContent;
 
 import io.netty.channel.ChannelHandlerContext;
 
-public class IChargeActionProcessor {
+public interface IChargeActionProcessor {
 
-	public void processModel(TomdaProcotolContent procotolContent, ChannelHandlerContext context) {
-		
-	}
+	public void processModel(TomdaProcotolContent procotolContent, ChannelHandlerContext context);
 
 }

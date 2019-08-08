@@ -31,6 +31,7 @@ public class TomdaChargerDecoder extends ByteToMessageDecoder {
     public void decode(ChannelHandlerContext ctx, ByteBuf buffer, List<Object> out) throws Exception {
         if (buffer.toString().equals("EmptyByteBufBE")) {
             logger.info("终端已断开连接！");
+            System.out.println("终端已断开连接！");
             return;
         }
         // 如果写入数据的下标大于读取的下标，就释放一下缓冲
@@ -44,16 +45,18 @@ public class TomdaChargerDecoder extends ByteToMessageDecoder {
         int length = content.length();
 
         // 判断终端是否在缓存中
-        String chargerInfo = "";
+        String chargerInfo = "";							//悟空充电桩行为处理器
+        System.out.println(ctx.channel().attr(TomdaChargeActionProcessor.NETTY_CHANNEL_KEY).get());
         KeyAttach keyAttach = (KeyAttach) ctx.channel().attr(TomdaChargeActionProcessor.NETTY_CHANNEL_KEY).get();
         if (keyAttach != null && keyAttach.getRouterSerialNum() != null) {
             chargerInfo = "[" + keyAttach.getRouterSerialNum() + "]";
         }
-        logger.info((Tool.formatDateTime(new Date()) + "Tomda协议,终端" + chargerInfo + "上报的命令length = " + length + ", show content = " + Tool
-                .showData(content)));
+        logger.info((Tool.formatDateTime(new Date()) + "Tomda协议,终端" + chargerInfo + "上报的命令length = " + length + ", show content = " + Tool.showData(content)));
+        System.out.println((Tool.formatDateTime(new Date()) + "Tomda协议,终端" + chargerInfo + "上报的命令length = " + length + ", show content = " + Tool.showData(content)));
         try {
             // 判断协议开头
             if (!content.startsWith(TomdaProtocol.PREFIX_TEXT)) {
+            	System.out.println(123);
                 // 判断内容中是否包含协议头,可能是终端组包错误
                 int protocolHeaderIndex = content.indexOf(TomdaProtocol.PREFIX_TEXT);
                 if (protocolHeaderIndex > 0) {
@@ -61,9 +64,12 @@ public class TomdaChargerDecoder extends ByteToMessageDecoder {
                     ByteBuf discardBuf = buffer.readBytes(discardLength);
                     logger.info("Tomda协议,服务接收到终端" + chargerInfo + "的指令协议头不对,但指令中有包含协议头，丢弃内容长度[" + discardLength + "],丢弃内容：" + Tool.showData(decode(discardBuf
                             .nioBuffer())));
+                    System.out.println("Tomda协议,服务接收到终端" + chargerInfo + "的指令协议头不对,但指令中有包含协议头，丢弃内容长度[" + discardLength + "],丢弃内容：" + Tool.showData(decode(discardBuf
+                            .nioBuffer())));
                     discardBuf.release();  // 用完即释放
                 } else {
                     logger.info("Tomda协议,服务接收到终端" + chargerInfo + "的指令不符合规范，指令内容：" + Tool.showData(content));
+                    System.out.println("Tomda协议,服务接收到终端" + chargerInfo + "的指令不符合规范，指令内容：" + Tool.showData(content));
                     buffer.clear();
                 }
                 return;
@@ -92,11 +98,13 @@ public class TomdaChargerDecoder extends ByteToMessageDecoder {
                     validBuf.release();     // 用完即释放
 
                     int msgId = PTool.count(validContent.charAt(9), validContent.charAt(8));
+                    System.out.println("msgId:" + msgId);
                     // 获取指令类型
                     int dataType = PTool.count(validContent.charAt(7), validContent.charAt(6));
-
+                    System.out.println("dataType:" + dataType);
                     // 数据域
                     String dataContent = validContent.substring(TomdaProtocol.BIT_DATA, validLength - 2);
+                    System.out.println("数据域:" + dataContent);
                     byte[] bytes = new byte[dataContent.length()];
                     for (int i = 0; i < dataContent.length(); ++i) {
                         bytes[i] = (byte) dataContent.charAt(i);
@@ -108,6 +116,7 @@ public class TomdaChargerDecoder extends ByteToMessageDecoder {
                     procotolContent.setMessageLite(messageLite);
                     procotolContent.setFrame(validContent);
                     out.add(procotolContent);
+                    
                 } else {
                     logger.error("Tomda协议,终端" + chargerInfo + "上报的非法帧：校验和校验失败，checksum为 " + checksumRead + ", checksumCalculate为 " + checksumCalculate);
                     // 判断内容中是否包含协议头,可能是终端包错误
@@ -126,6 +135,7 @@ public class TomdaChargerDecoder extends ByteToMessageDecoder {
             }
         } catch (Exception e) {
             logger.error("Tomda协议,处理终端" + chargerInfo + "数据包异常 : " + e.getMessage(), e);
+            e.printStackTrace();
             buffer.clear();
         } finally {
 //            ReferenceCountUtil.release(buffer);
@@ -211,8 +221,6 @@ public class TomdaChargerDecoder extends ByteToMessageDecoder {
             case 602:
                 return TriggerMessageProto.triggerMessageReq.getDefaultInstance().getParserForType().parseFrom(data);                           // 触发消息请求
         }
-
         return null; // or throw exception
     }
-
 }
